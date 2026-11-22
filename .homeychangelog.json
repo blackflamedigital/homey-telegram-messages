@@ -1,5 +1,8 @@
 {
   "1.0.18": {
-    "en": "widget customisation"
+    "en": "Added options for message count and sender display."
+  },
+  "1.0.19": {
+    "en": "Improved the app description and store summary."
   }
 }
