@@ -1,5 +1,5 @@
 {
-  "name": { "en": "Google Play Sales" },
+  "name": { "en": "Telegram Messages" },
   "height": 360,
   "api": {
     "getMessages": { "method": "GET", "path": "/" }

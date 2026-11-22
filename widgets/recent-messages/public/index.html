@@ -17,18 +17,18 @@
   </style>
 </head>
 <body class="homey-widget">
-  <h1>Google Play Sales</h1>
+  <h1 id="chat-title">Telegram Messages</h1>
   <p id="status" role="status">Loading messages…</p>
-  <ul id="messages" aria-label="Latest sales messages"></ul>
+  <ul id="messages" aria-label="Latest Telegram messages"></ul>
   <script>
     function onHomeyReady(Homey) {
+      const heading = document.getElementById('chat-title');
       const list = document.getElementById('messages');
       const status = document.getElementById('status');
       const dates = new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' });
       const labels = {
-        setup: 'Connect Telegram in the Google Play Sales app settings.',
+        setup: 'Connect Telegram in the Telegram Messages app settings.',
         'sign-in': 'Reconnect Telegram in the app settings.',
-        'invalid-chat': 'Enter the Telegram bot’s username in the app settings.',
         unavailable: 'Telegram is temporarily unavailable.',
       };
       let busy = false;
@@ -36,7 +36,8 @@
         if (busy || document.hidden) return;
         busy = true;
         try {
-          const { status: state, messages } = await Homey.api('GET', '/', {});
+          const { status: state, title: chatTitle, messages } = await Homey.api('GET', '/', {});
+          heading.textContent = chatTitle || 'Telegram Messages';
           status.textContent = state === 'ready'
             ? (messages.length ? '' : 'No messages in this chat yet.')
             : labels[state];
@@ -47,7 +48,7 @@
             row.className = 'row';
             const title = document.createElement('span');
             title.className = 'title';
-            title.textContent = headline.replace(/^Google Play · /, '');
+            title.textContent = headline;
             const time = document.createElement('time');
             if (Number.isFinite(date)) {
               time.dateTime = new Date(date).toISOString();

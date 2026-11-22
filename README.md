@@ -1,29 +1,42 @@
-# Google Play Sales for Homey
+# Telegram Messages
 
-This local Homey app adds a **Google Play Sales** dashboard widget that reads
-the five latest incoming text messages from your existing Telegram sales bot.
-It refreshes about every 30 seconds while visible. The Supabase purchase
-webhook continues to send directly to Telegram.
+**Telegram Messages** adds a Homey dashboard widget for the latest five
+messages from one Telegram chat. Choose a direct chat, group, channel, or Saved
+Messages. The widget shows both incoming and outgoing messages, newest first,
+and refreshes about every 30 seconds while visible. It shows a short label for
+messages without text.
 
 ## Install and connect
 
-1. In this directory on your Mac Mini, run `npm ci`.
-2. Run `homey login` and `homey select`, then choose your **Homey Self-Hosted
-   Server**. Run `homey app install`.
-3. Sign in to [Telegram’s developer portal](https://my.telegram.org) with
-   the Telegram user account that receives the sales alerts. In **API
-   development tools**, find or create your API ID and API hash.
-4. Run `npm run telegram-login` in this directory on the Mac. Enter the API ID,
-   API hash, your sales bot’s username (the handle shown in its Telegram
-   profile), and your personal Telegram sign-in details when prompted.
-   The script copies the connection to the Mac clipboard.
-5. In Homey, open **Apps → Google Play Sales → Settings**. Paste the
-   connection into **Telegram connection** and click **Save connection**.
-   Clear the clipboard afterwards.
-6. Edit your Homey dashboard, add the **Google Play Sales** widget, and
-   check it displays the existing chat history.
+1. Run `npm ci` in this directory.
+2. Run `homey login` and `homey select`, choose your Homey, then run
+   `homey app install`. Skip this step when installing from the Homey App Store.
+3. Sign in at [my.telegram.org](https://my.telegram.org) using the Telegram
+   account that has access to the chat. In **API development tools**, find or
+   create your API ID and API hash.
+4. Run `npm run telegram-login`. Enter the API ID and hash, sign in when
+   prompted, then filter the chat list or press Enter to list all chats. Choose
+   the number next to the chat you want to display.
+5. Open **Apps → Telegram Messages → Settings** in Homey. Paste the connection
+   into **Telegram connection** and click **Save connection**. On macOS the
+   script copies the connection to the clipboard. On other systems it prints
+   the connection for you to copy.
+6. Edit your Homey dashboard and add the **Telegram Messages** widget.
 
-The connection includes a Telegram user session and should be kept private.
-Homey stores it in this app’s settings. The widget receives only the selected
-chat’s message text and timestamps. To revoke the login, terminate the session
-under **Settings → Devices** in Telegram and remove the connection in Homey.
+Run the sign-in script again and save the new connection to switch chats.
+
+## Privacy
+
+The connection includes a Telegram user session. Keep it private and clear it
+from your clipboard or terminal after setup. Homey stores it in the app’s
+settings. The app uses it to fetch messages directly from Telegram and sends
+only the selected chat’s title, message text, and timestamps to the widget.
+Anyone who can view the dashboard can see the displayed messages.
+
+To revoke a session, terminate it under **Settings → Devices** in Telegram
+and remove the connection in Homey.
+
+## App Store validation
+
+Run `homey app validate --level publish` before submitting a draft for review.
+[Homey’s publishing guide](https://apps.developer.homey.app/app-store/publishing)

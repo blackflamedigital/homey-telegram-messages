@@ -7,7 +7,7 @@
 </head>
 <body>
   <header class="homey-header">
-    <h1 class="homey-title">Google Play Sales</h1>
+    <h1 class="homey-title">Telegram Messages</h1>
     <p class="homey-subtitle">Paste the connection copied by the Telegram sign-in script.</p>
   </header>
   <form id="setup" class="homey-form">
@@ -23,6 +23,18 @@
     function onHomeyReady(Homey) {
       const connection = document.getElementById('connection');
       const status = document.getElementById('status');
+      function validChat(chat) {
+        if (!chat?.peer || typeof chat.title !== 'string') return false;
+        const integer = (value) => typeof value === 'string' && /^-?\d+$/.test(value);
+        const { peer } = chat;
+        switch (chat.type) {
+          case 'InputPeerSelf': return Object.keys(peer).length === 0;
+          case 'InputPeerChat': return integer(peer.chatId);
+          case 'InputPeerUser': return integer(peer.userId) && integer(peer.accessHash);
+          case 'InputPeerChannel': return integer(peer.channelId) && integer(peer.accessHash);
+          default: return false;
+        }
+      }
       document.getElementById('setup').addEventListener('submit', (event) => {
         event.preventDefault();
         let config;
@@ -30,14 +42,14 @@
           config = JSON.parse(connection.value);
           if (!Number.isSafeInteger(config.apiId) || config.apiId <= 0 ||
               !/^[a-f0-9]{32}$/i.test(config.apiHash) ||
-              !/^@[A-Za-z0-9_]{5,32}$/.test(config.bot) ||
+              !validChat(config.chat) ||
               typeof config.session !== 'string' || !config.session) throw new Error();
         } catch {
           status.textContent = 'Paste the connection copied by the sign-in script.';
           return;
         }
-        const { apiId, apiHash, bot, session } = config;
-        Homey.set('telegram', { apiId, apiHash, bot, session }, (error) => {
+        const { apiId, apiHash, chat, session } = config;
+        Homey.set('telegram', { apiId, apiHash, chat, session }, (error) => {
           status.textContent = error ? 'Couldn’t save the connection.' : 'Connection saved.';
           if (!error) connection.value = '';
         });

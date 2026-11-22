@@ -1,10 +1,10 @@
 'use strict';
 
 const Homey = require('homey');
-const { TelegramClient } = require('teleproto');
+const { Api, TelegramClient } = require('teleproto');
 const { StringSession } = require('teleproto/sessions');
 
-module.exports = class SalesApp extends Homey.App {
+module.exports = class TelegramMessagesApp extends Homey.App {
   async onInit() {
     this.cache = null;
     this.pending = null;
@@ -50,17 +50,13 @@ module.exports = class SalesApp extends Homey.App {
 
       const fetchMessages = async () => {
         await client.connect();
-        const bot = await client.getEntity(config.bot);
-        if (!bot.bot) return { status: 'invalid-chat', messages: [] };
-
-        const messages = [];
-        for await (const message of client.iterMessages(bot)) {
-          if (!message.out && typeof message.message === 'string' && message.message) {
-            messages.push({ text: message.message, date: message.date * 1000 });
-            if (messages.length === 5) break;
-          }
-        }
-        return { status: 'ready', messages };
+        const peer = new Api[config.chat.type](config.chat.peer);
+        const history = await client.getMessages(peer, { limit: 5 });
+        const messages = history.map((message) => ({
+          text: message.message || (message.media ? 'Media message' : 'Chat activity'),
+          date: message.date * 1000,
+        }));
+        return { status: 'ready', title: config.chat.title, messages };
       };
 
       return await Promise.race([
@@ -73,7 +69,7 @@ module.exports = class SalesApp extends Homey.App {
       const code = error?.errorMessage;
       const status = ['AUTH_KEY_UNREGISTERED', 'SESSION_REVOKED', 'AUTH_KEY_DUPLICATED']
         .includes(code) ? 'sign-in' : 'unavailable';
-      return { status, messages: prior };
+      return { status, title: config.chat.title, messages: prior };
     } finally {
       clearTimeout(timer);
       if (client) void client.disconnect().catch(() => {});
