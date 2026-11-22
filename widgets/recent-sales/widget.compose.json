@@ -1,0 +1,7 @@
+{
+  "name": { "en": "Google Play Sales" },
+  "height": 360,
+  "api": {
+    "getMessages": { "method": "GET", "path": "/" }
+  }
+}

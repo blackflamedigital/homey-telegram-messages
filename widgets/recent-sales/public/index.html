@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { padding: 14px 16px; box-sizing: border-box; }
+    h1 { font-size: 16px; margin: 0 0 10px; }
+    p { margin: 0; }
+    #status { font-size: 13px; margin-bottom: 8px; }
+    ul { list-style: none; margin: 0; padding: 0; }
+    li { padding: 7px 0; border-top: 1px solid color-mix(in srgb, currentColor 16%, transparent); }
+    .row { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+    .title { font-size: 14px; font-weight: 650; overflow-wrap: anywhere; }
+    time { opacity: .72; font-size: 11px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .details { font-size: 12px; opacity: .83; white-space: pre-line; overflow-wrap: anywhere; }
+  </style>
+</head>
+<body class="homey-widget">
+  <h1>Google Play Sales</h1>
+  <p id="status" role="status">Loading messages…</p>
+  <ul id="messages" aria-label="Latest sales messages"></ul>
+  <script>
+    function onHomeyReady(Homey) {
+      const list = document.getElementById('messages');
+      const status = document.getElementById('status');
+      const dates = new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' });
+      const labels = {
+        setup: 'Connect Telegram in the Google Play Sales app settings.',
+        'sign-in': 'Reconnect Telegram in the app settings.',
+        'invalid-chat': 'Enter the Telegram bot’s username in the app settings.',
+        unavailable: 'Telegram is temporarily unavailable.',
+      };
+      let busy = false;
+      async function refresh() {
+        if (busy || document.hidden) return;
+        busy = true;
+        try {
+          const { status: state, messages } = await Homey.api('GET', '/', {});
+          status.textContent = state === 'ready'
+            ? (messages.length ? '' : 'No messages in this chat yet.')
+            : labels[state];
+          list.replaceChildren(...messages.map(({ text, date }) => {
+            const [headline, ...details] = text.split('\n');
+            const item = document.createElement('li');
+            const row = document.createElement('div');
+            row.className = 'row';
+            const title = document.createElement('span');
+            title.className = 'title';
+            title.textContent = headline.replace(/^Google Play · /, '');
+            const time = document.createElement('time');
+            if (Number.isFinite(date)) {
+              time.dateTime = new Date(date).toISOString();
+              time.textContent = dates.format(date);
+            }
+            row.append(title, time);
+            const content = document.createElement('p');
+            content.className = 'details';
+            content.textContent = details.join('\n');
+            item.append(row, content);
+            return item;
+          }));
+          Homey.setHeight(document.body.scrollHeight);
+        } catch {
+          status.textContent = 'Couldn’t load messages. Retrying…';
+        } finally {
+          busy = false;
+        }
+      }
+      Homey.ready();
+      refresh();
+      const interval = setInterval(refresh, 30_000);
+      document.addEventListener('visibilitychange', refresh);
+      window.addEventListener('unload', () => clearInterval(interval), { once: true });
+    }
+  </script>
+</body>
+</html>

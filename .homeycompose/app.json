@@ -1,0 +1,12 @@
+{
+  "id": "com.blackflamedigital.playsales",
+  "version": "1.0.0",
+  "compatibility": ">=12.3.0",
+  "sdk": 3,
+  "platforms": ["local"],
+  "name": { "en": "Google Play Sales" },
+  "description": { "en": "Show the five latest messages from your sales bot." },
+  "category": ["tools"],
+  "author": { "name": "Black Flame Digital" },
+  "permissions": []
+}
