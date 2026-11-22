@@ -1,0 +1,24 @@
+{
+  "name": { "en": "Telegram Chat" },
+  "images": {
+    "small": "/drivers/telegram-chat/assets/images/small.png",
+    "large": "/drivers/telegram-chat/assets/images/large.png"
+  },
+  "class": "other",
+  "capabilities": [],
+  "platforms": ["local"],
+  "pair": [
+    {
+      "id": "telegram_instructions",
+      "navigation": { "next": "telegram_credentials" }
+    },
+    { "id": "telegram_credentials" },
+    { "id": "telegram_qr" },
+    {
+      "id": "list_devices",
+      "template": "list_devices",
+      "navigation": { "next": "add_devices" }
+    },
+    { "id": "add_devices", "template": "add_devices" }
+  ]
+}

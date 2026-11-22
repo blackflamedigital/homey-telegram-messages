@@ -12,6 +12,7 @@
     li { padding: 7px 0; border-top: 1px solid color-mix(in srgb, currentColor 16%, transparent); }
     .row { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
     .title { font-size: 14px; font-weight: 650; overflow-wrap: anywhere; }
+    .sender { font-size: 11px; opacity: .7; margin-bottom: 2px; }
     time { opacity: .72; font-size: 11px; white-space: nowrap; font-variant-numeric: tabular-nums; }
     .details { font-size: 12px; opacity: .83; white-space: pre-line; overflow-wrap: anywhere; }
   </style>
@@ -26,24 +27,41 @@
       const list = document.getElementById('messages');
       const status = document.getElementById('status');
       const dates = new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' });
+      const settings = Homey.getSettings();
+      const requestedCount = Number(settings.message_count);
+      const messageCount = [5, 10, 20].includes(requestedCount) ? requestedCount : 5;
+      const showSender = settings.show_sender !== false;
       const labels = {
-        setup: 'Connect Telegram in the Telegram Messages app settings.',
-        'sign-in': 'Reconnect Telegram in the app settings.',
+        setup: 'Add and select a Telegram Chat device to get started.',
+        'sign-in': 'Remove and add this Telegram Chat device again to reconnect.',
         unavailable: 'Telegram is temporarily unavailable.',
       };
       let busy = false;
       async function refresh() {
         if (busy || document.hidden) return;
+        const [deviceId] = Homey.getDeviceIds();
+        if (!deviceId) {
+          status.textContent = 'Add a Telegram chat device in Homey, then select it in this widget’s settings.';
+          list.replaceChildren();
+          Homey.setHeight(document.body.scrollHeight);
+          return;
+        }
         busy = true;
         try {
-          const { status: state, title: chatTitle, messages } = await Homey.api('GET', '/', {});
+          const { status: state, title: chatTitle, messages } = await Homey.api('GET', `/${encodeURIComponent(deviceId)}`, {});
           heading.textContent = chatTitle || 'Telegram Messages';
           status.textContent = state === 'ready'
             ? (messages.length ? '' : 'No messages in this chat yet.')
             : labels[state];
-          list.replaceChildren(...messages.map(({ text, date }) => {
+          list.replaceChildren(...messages.slice(0, messageCount).map(({ text, date, sender }) => {
             const [headline, ...details] = text.split('\n');
             const item = document.createElement('li');
+            if (showSender && sender) {
+              const senderLabel = document.createElement('div');
+              senderLabel.className = 'sender';
+              senderLabel.textContent = sender;
+              item.append(senderLabel);
+            }
             const row = document.createElement('div');
             row.className = 'row';
             const title = document.createElement('span');

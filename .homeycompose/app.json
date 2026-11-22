@@ -1,6 +1,6 @@
 {
   "id": "com.blackflamedigital.telegrammessages",
-  "version": "1.0.0",
+  "version": "1.0.17",
   "compatibility": ">=12.3.0",
   "sdk": 3,
   "platforms": [
@@ -10,7 +10,7 @@
     "en": "Telegram Messages"
   },
   "description": {
-    "en": "See the latest five messages from a Telegram chat on your dashboard."
+    "en": "Add a Telegram Chat device through Devices → Add device, then select it in the Telegram Messages dashboard widget."
   },
   "category": [
     "tools"

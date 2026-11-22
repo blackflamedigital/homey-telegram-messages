@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+  <header class="homey-header">
+    <h1 class="homey-title">Sign in with Telegram</h1>
+    <p class="homey-subtitle">On a logged-in Telegram app, open Settings → Devices → Link Desktop Device, scan this code, then approve the sign-in.</p>
+  </header>
+  <div class="homey-form">
+    <div id="qr-panel" style="text-align: center;">
+      <img id="qr-image" alt="Temporary Telegram sign-in QR code" style="width: 280px; height: 280px; object-fit: contain; display: none; margin: 0 auto;">
+      <p id="qr-status" role="status">Preparing a secure QR code…</p>
+    </div>
+    <div id="password-panel" style="display: none;">
+      <p id="password-hint" class="homey-subtitle"></p>
+      <label class="homey-form-label" for="password">Two-step verification password</label>
+      <input id="password" class="homey-form-input" type="password" autocomplete="current-password">
+      <button id="password-submit" class="homey-button-primary-full" type="button">Continue</button>
+    </div>
+    <p id="status" role="status"></p>
+  </div>
+  <script>
+    (function () {
+      const qrPanel = document.getElementById('qr-panel');
+      const qrImage = document.getElementById('qr-image');
+      const qrStatus = document.getElementById('qr-status');
+      const passwordPanel = document.getElementById('password-panel');
+      const passwordHint = document.getElementById('password-hint');
+      const passwordInput = document.getElementById('password');
+      const passwordSubmit = document.getElementById('password-submit');
+      const status = document.getElementById('status');
+      let countdown = null;
+
+      function showQrCode(payload) {
+        if (countdown) clearInterval(countdown);
+        qrPanel.style.display = 'block';
+        passwordPanel.style.display = 'none';
+        qrImage.src = payload.dataUrl;
+        qrImage.style.display = 'block';
+
+        const updateCountdown = () => {
+          const seconds = Math.max(0, Number(payload.expires) - Math.floor(Date.now() / 1000));
+          qrStatus.textContent = seconds > 0
+            ? `Scan this code in Telegram. It refreshes in ${seconds} seconds.`
+            : 'Refreshing the QR code…';
+        };
+        updateCountdown();
+        countdown = setInterval(updateCountdown, 1000);
+        status.textContent = '';
+      }
+
+      function showPasswordPrompt(prompt) {
+        if (countdown) clearInterval(countdown);
+        countdown = null;
+        qrPanel.style.display = 'none';
+        passwordPanel.style.display = 'block';
+        passwordHint.textContent = prompt.hint || 'Enter your Telegram two-step verification password.';
+        passwordInput.value = '';
+        passwordSubmit.disabled = false;
+        passwordInput.focus();
+        status.textContent = '';
+      }
+
+      passwordSubmit.addEventListener('click', async () => {
+        if (!passwordInput.value.trim()) {
+          status.textContent = 'Enter your two-step verification password.';
+          passwordInput.focus();
+          return;
+        }
+        passwordSubmit.disabled = true;
+        status.textContent = 'Checking your password…';
+        try {
+          const result = await Homey.emit('submit_telegram_input', { value: passwordInput.value });
+          if (!result?.ok) throw new Error(result?.error || 'Could not submit the password.');
+        } catch (error) {
+          status.textContent = error?.message || 'Could not submit the password.';
+          passwordSubmit.disabled = false;
+        }
+      });
+
+      Homey.on('telegram_qr_code', showQrCode);
+      Homey.on('telegram_qr_prompt', showPasswordPrompt);
+      Homey.on('telegram_qr_error', (message) => {
+        status.textContent = String(message || 'Telegram QR sign-in failed. Close this screen and start pairing again.');
+        passwordSubmit.disabled = false;
+      });
+      Homey.emit('start_telegram_qr_login').then((result) => {
+        if (!result?.ok) status.textContent = result?.error || 'Could not start QR sign-in.';
+      }).catch((error) => {
+        status.textContent = error?.message || 'Could not start QR sign-in.';
+      });
+    })();
+  </script>
+</body>
+</html>

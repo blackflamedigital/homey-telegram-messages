@@ -1,7 +1,27 @@
 {
   "name": { "en": "Telegram Messages" },
   "height": 360,
+  "devices": { "type": "app", "singular": true },
+  "settings": [
+    {
+      "id": "message_count",
+      "type": "dropdown",
+      "title": { "en": "Messages to show" },
+      "value": "5",
+      "values": [
+        { "id": "5", "title": { "en": "5 messages" } },
+        { "id": "10", "title": { "en": "10 messages" } },
+        { "id": "20", "title": { "en": "20 messages" } }
+      ]
+    },
+    {
+      "id": "show_sender",
+      "type": "checkbox",
+      "title": { "en": "Show sender" },
+      "value": true
+    }
+  ],
   "api": {
-    "getMessages": { "method": "GET", "path": "/" }
+    "getMessages": { "method": "GET", "path": "/:deviceId" }
   }
 }

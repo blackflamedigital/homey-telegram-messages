@@ -6,37 +6,44 @@ const { StringSession } = require('teleproto/sessions');
 
 module.exports = class TelegramMessagesApp extends Homey.App {
   async onInit() {
-    this.cache = null;
-    this.pending = null;
-    const clear = (key) => {
-      if (key === 'telegram') {
-        this.cache = null;
-        this.pending = null;
-      }
-    };
-    this.homey.settings.on('set', clear);
-    this.homey.settings.on('unset', clear);
+    this.cache = new Map();
+    this.pending = new Map();
   }
 
-  async getMessages() {
-    const config = this.homey.settings.get('telegram');
-    if (!config) return { status: 'setup', messages: [] };
-    if (this.cache?.until > Date.now()) return this.cache.result;
-    if (this.pending) return this.pending;
+  async getDeviceMessages(deviceId) {
+    const driver = this.homey.drivers.getDriver('telegram-chat');
+    const devices = driver.getDevices();
+    const device = devices.find((candidate) => (
+      candidate.getId() === deviceId
+      || candidate.id === deviceId
+      || candidate.getData().id === deviceId
+    ));
+    if (!device) {
+      this.log('Widget message request did not match a paired Telegram Chat device');
+      return { status: 'setup', messages: [] };
+    }
+    const config = await device.getStoreValue('telegram');
+    if (!config) {
+      this.log('Widget message request matched a device without Telegram configuration');
+      return { status: 'setup', messages: [] };
+    }
+    const key = `${deviceId}:${JSON.stringify(config.chat.peer)}`;
+    const cached = this.cache.get(key);
+    if (cached?.until > Date.now()) return cached.result;
+    if (this.pending.has(key)) return this.pending.get(key);
 
-    const request = this.readMessages(config).then((result) => {
-      if (this.pending === request) {
-        this.cache = { result, until: Date.now() + 25_000 };
-        this.pending = null;
+    const request = this.readMessages(config, cached?.result.messages ?? []).then((result) => {
+      if (this.pending.get(key) === request) {
+        this.cache.set(key, { result, until: Date.now() + 25_000 });
+        this.pending.delete(key);
       }
       return result;
     });
-    this.pending = request;
+    this.pending.set(key, request);
     return request;
   }
 
-  async readMessages(config) {
-    const prior = this.cache?.result.messages ?? [];
+  async readMessages(config, prior = []) {
     let client;
     let timer;
     try {
@@ -51,10 +58,17 @@ module.exports = class TelegramMessagesApp extends Homey.App {
       const fetchMessages = async () => {
         await client.connect();
         const peer = new Api[config.chat.type](config.chat.peer);
-        const history = await client.getMessages(peer, { limit: 5 });
+        const history = await client.getMessages(peer, { limit: 20 });
+        this.log(`Telegram history fetch succeeded for ${config.chat.title} (${config.chat.type}): ${history.length} messages`);
         const messages = history.map((message) => ({
           text: message.message || (message.media ? 'Media message' : 'Chat activity'),
           date: message.date * 1000,
+          sender: message.sender
+            ? [message.sender.firstName, message.sender.lastName].filter(Boolean).join(' ')
+              || message.sender.title
+              || message.sender.username
+              || ''
+            : message.postAuthor || (message.out ? 'You' : ''),
         }));
         return { status: 'ready', title: config.chat.title, messages };
       };
@@ -67,6 +81,7 @@ module.exports = class TelegramMessagesApp extends Homey.App {
       ]);
     } catch (error) {
       const code = error?.errorMessage;
+      this.error(`Telegram history fetch failed for ${config.chat.title}: ${code || error?.message || error?.name || 'unknown error'}`);
       const status = ['AUTH_KEY_UNREGISTERED', 'SESSION_REVOKED', 'AUTH_KEY_DUPLICATED']
         .includes(code) ? 'sign-in' : 'unavailable';
       return { status, title: config.chat.title, messages: prior };
